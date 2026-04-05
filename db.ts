@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { eq, and, gte, lte } from "drizzle-orm";
+import mysql from "mysql2/promise";
 import * as schema from "./schema.js";
 import dotenv from "dotenv";
 
@@ -12,7 +13,8 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const pool = mysql.createPool(process.env.DATABASE_URL);
+      _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -20,6 +22,7 @@ export async function getDb() {
   }
   return _db;
 }
+
 
 export async function upsertUser(user: any): Promise<void> {
   const db = await getDb();
@@ -83,8 +86,14 @@ export async function createReservation(data: any): Promise<any> {
 
 export async function updateReservationStatus(id: number, status: string): Promise<void> {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new Error("Base de données indisponible");
   await db.update(reservations).set({ status: status as any }).where(eq(reservations.id, id));
+}
+
+export async function deleteReservation(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Base de données indisponible");
+  await db.delete(reservations).where(eq(reservations.id, id));
 }
 
 export async function getPendingReservations(): Promise<any[]> {
@@ -119,14 +128,18 @@ export async function createOrGetExternalUser(data: any): Promise<any> {
 export async function getUserQuota(userId: number, year: number): Promise<any | undefined> {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(userQuotas).where(and(eq(userQuotas.userId, userId), eq(userQuotas.id, year as any))).limit(1);
+  // La table n'a pas de colonne 'year', on récupère juste le quota de l'utilisateur
+  const result = await db.select().from(userQuotas).where(eq(userQuotas.userId, userId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
 export async function createOrUpdateUserQuota(userId: number, year: number, quotaHours: number): Promise<any> {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(userQuotas).values({ userId, quotaHours: quotaHours.toString() as any, usedHours: '0' as any }).onDuplicateKeyUpdate({ set: { quotaHours: quotaHours.toString() as any } });
+  if (!db) throw new Error("Base de données indisponible");
+  // Le schéma utilise 'quotaLimit' et 'quotaUsed' (pas quotaHours)
+  await db.insert(userQuotas)
+    .values({ userId, quotaLimit: quotaHours, quotaUsed: 0 })
+    .onDuplicateKeyUpdate({ set: { quotaLimit: quotaHours } });
   return { userId, year, quotaHours };
 }
 
