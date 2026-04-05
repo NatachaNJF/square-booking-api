@@ -36,7 +36,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Backend Square is running!' });
 });
 
-app.listen(port, () => {
-  console.log(`[Backend] Serveur démarré sur http://localhost:${port}`);
-  console.log(`[Backend] API tRPC disponible sur http://localhost:${port}/trpc`);
+const host = '0.0.0.0';
+app.listen(Number(port), host, () => {
+  console.log(`[Backend] Serveur démarré sur http://${host}:${port}`);
+  console.log(`[Backend] API tRPC disponible sur http://${host}:${port}/trpc`);
 });
