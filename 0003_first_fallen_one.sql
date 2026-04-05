@@ -1,0 +1,1 @@
+ALTER TABLE `reservations` ADD `skipCleaningBuffer` boolean DEFAULT false;
