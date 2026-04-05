@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { eq, and, gte, lte } from "drizzle-orm";
-import mysql from "mysql2/promise";
+import { createPool } from "mysql2/promise";
 import * as schema from "./schema.js";
 import dotenv from "dotenv";
 
@@ -13,7 +13,7 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const pool = mysql.createPool(process.env.DATABASE_URL);
+      const pool = createPool(process.env.DATABASE_URL);
       _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
@@ -22,6 +22,7 @@ export async function getDb() {
   }
   return _db;
 }
+
 
 
 export async function upsertUser(user: any): Promise<void> {
