@@ -1,16 +1,42 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, protectedProcedure, router } from "./trpc-core.js";
-import { getRooms, getRoomById, checkAvailability, getRoomSetups, getAdditionalOptions, updateAdditionalOption, getPendingReservations, getReservationsByUser, createReservation, updateReservationStatus, deleteReservation, createOrGetExternalUser, getUserQuota, createOrUpdateUserQuota, updateRoom, getReservationsForCalendar, addReservationOption, } from "./db.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { eq } from "drizzle-orm";
+import { users } from "./schema.js";
+import { getDb, getRooms, getRoomById, checkAvailability, getRoomSetups, getAdditionalOptions, updateAdditionalOption, getPendingReservations, getReservationsByUser, createReservation, updateReservationStatus, deleteReservation, createOrGetExternalUser, getUserQuota, createOrUpdateUserQuota, updateRoom, getReservationsForCalendar, addReservationOption, } from "./db.js";
+const JWT_SECRET = process.env.JWT_SECRET || 'square-booking-super-secret-key-2026';
 export const appRouter = router({
+    auth: router({
+        login: publicProcedure
+            .input(z.object({
+            email: z.string().email(),
+            password: z.string()
+        }))
+            .mutation(async ({ input }) => {
+            const db = await getDb();
+            if (!db)
+                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB Error" });
+            const result = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+            const user = result[0];
+            if (!user || !user.passwordHash) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou mot de passe incorrect." });
+            }
+            const isMatch = await bcrypt.compare(input.password, user.passwordHash);
+            if (!isMatch) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou mot de passe incorrect." });
+            }
+            const token = jwt.sign({ id: user.id, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
+            return { token, user: { id: user.id, role: user.role, name: user.name } };
+        }),
+        me: protectedProcedure.query(({ ctx }) => {
+            return ctx.user;
+        })
+    }),
     // ─── Système ───────────────────────────────────────────────────────────────
     system: router({
         health: publicProcedure.query(() => ({ status: 'ok', timestamp: new Date().toISOString() })),
-    }),
-    // ─── Auth ──────────────────────────────────────────────────────────────────
-    auth: router({
-        me: publicProcedure.query(opts => opts.ctx.user || null),
-        logout: publicProcedure.mutation(() => ({ success: true })),
     }),
     // ─── Salles ────────────────────────────────────────────────────────────────
     rooms: router({

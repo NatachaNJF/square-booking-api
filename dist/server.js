@@ -15,10 +15,7 @@ app.use(cors({
 app.use('/trpc', trpcExpress.createExpressMiddleware({
     router: appRouter,
     createContext: ({ req, res }) => {
-        // Pour l'instant on mocke l'utilisateur en tant qu'admin pour simplifier le test
-        // TODO: Réintégrer l'auth réelle une fois la DB en ligne
         return {
-            user: { id: 1, role: 'admin', name: 'Admin local' },
             req,
             res
         };
