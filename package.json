@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "echo 'Pre-compiled build'",
+    "build": "npx tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch server.ts",
     "db:push": "drizzle-kit push:mysql"
