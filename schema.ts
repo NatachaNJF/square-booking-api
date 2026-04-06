@@ -2,12 +2,13 @@ import { mysqlTable, int, varchar, timestamp, datetime, decimal, mysqlEnum, bool
 import { relations } from "drizzle-orm";
 
 /**
- * Users (Internes)
+ * Users (Internes & Admins)
  */
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }), // Nullable car les simples utilisateurs utilisent le lien magique
   role: mysqlEnum("role", ["admin", "user"]).default("user").notNull(),
   magicLinkToken: varchar("magicLinkToken", { length: 255 }),
   tokenExpiresAt: datetime("tokenExpiresAt"),
@@ -38,6 +39,7 @@ export const externalUsers = mysqlTable("externalUsers", {
   company: varchar("company", { length: 255 }),
   vatNumber: varchar("vatNumber", { length: 255 }),
   address: text("address"),
+  magicLinkToken: varchar("magicLinkToken", { length: 255 }).unique(), // Lien magique unique
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
