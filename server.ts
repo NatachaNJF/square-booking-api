@@ -35,7 +35,7 @@ app.get('/health', (req, res) => {
 });
 
 
-app.listen(Number(port), () => {
+app.listen(Number(port), "0.0.0.0", () => {
   console.log(`[Backend] Serveur démarré sur le port ${port} (toutes interfaces)`);
   console.log(`[Backend] API tRPC disponible sur port ${port}/trpc`);
 });
